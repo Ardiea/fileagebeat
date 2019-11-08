@@ -1,8 +1,10 @@
 /.idea
 /build
-
+/data/*
+/data
 .DS_Store
 /fileagebeat
 /fileagebeat.test
-
+/logs/*
+/logs
 *.pyc
