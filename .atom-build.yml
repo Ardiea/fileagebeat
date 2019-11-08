@@ -1,0 +1,3 @@
+cwd: /home/michael/Projects/golang/src/github.com/Ardiea/fileagebeat
+name: default-build
+cmd: make
