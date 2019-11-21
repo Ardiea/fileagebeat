@@ -16,7 +16,7 @@ fileagebeat:
   # Each class requires a few parameters
   # - paths     : a list of absolute paths to directories to monitor. These must
   #               be directories, not files.
-  # - period    : how often to check the paths, integer in seconds
+  # - period    : how often to check the paths, duration
   # - threshold : a period of time that if the file's age exceeds it it will be
   #               considered to be an aging file.
   # - name      : A name for the input.
@@ -43,28 +43,28 @@ fileagebeat:
   inputs:
   - name: "monitor 1"
     type: verbose_monitor
-    period: '60'
+    period: '2s'
     paths:
-    - '/absolute/path/to/some/directory'
-    - '/another/absolute/path'
+    - '/var/log'
+    - '/etc'
     blacklist:
     - "filename_i_dontwant"
-    max_depth: 3
+    max_depth: 1
     attribute: ctime
-  - name: "monitor 2"
-    type: monitor
-    period: '45'
-    paths:
-    - '/abosolutepath/'
-    whitelist:
-    - "filename_i_do_want"
-    heartbeat: true
-  - name: "monitor 3"
-    type: monitor
-    period: '60'
-    paths:
-    - '/somekind/of/path'
-    enabled: true
+  # - name: "monitor 2"
+  #   type: monitor
+  #   period: '5s'
+  #   paths:
+  #   - '/abosolutepath/'
+  #   whitelist:
+  #   - "filename_i_do_want"
+  #   heartbeat: true
+  # - name: "monitor 3"
+  #   type: monitor
+  #   period: '7s'
+  #   paths:
+  #   - '/somekind/of/path'
+  #   enabled: true
 
 #================================ General =====================================
 

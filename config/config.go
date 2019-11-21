@@ -6,7 +6,7 @@ package config
 import (
   "fmt"
   //"os"
-  //"time"
+  "time"
 
   logp "github.com/elastic/beats/libbeat/logp"
   //"github.com/elastic/beats/libbeat/common"
@@ -19,7 +19,7 @@ type Config struct {
 type Input struct {
   Type string `config:"type"`
   Name string `config:"name"`
-  Period int `config:"period"`
+  Period time.Duration `config:"period"`
   Paths []string `config:"paths"`
   Whitelist []string `config:"whitelist"`
   Blacklist []string `config:"blacklist"`
