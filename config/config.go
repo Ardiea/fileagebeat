@@ -20,6 +20,7 @@ type Input struct {
   Type string `config:"type"`
   Name string `config:"name"`
   Period time.Duration `config:"period"`
+  Threshold time.Duration `config:"threshold"`
   Paths []string `config:"paths"`
   Whitelist []string `config:"whitelist"`
   Blacklist []string `config:"blacklist"`
@@ -49,7 +50,7 @@ func Validate(src []Input, dest []Input) (error) {
 
     //Type will default to monitor so that is okay. Error
     // on any invalid specification though
-    valid_types := []string{"verbose_monitor", "monitor", ""}
+    valid_types := []string{"monitor", ""}
     if Contains(v_input.Type, valid_types) {
       if si.Type != "" {
         v_input.Type = si.Type
@@ -63,6 +64,11 @@ func Validate(src []Input, dest []Input) (error) {
     // Period can be undefined, if so 60 is default
     if si.Period != 0 {
       v_input.Period = si.Period
+    }
+
+    // Period can be undefined, if so 60 is the default
+    if si.Threshold != 0 {
+      v_input.Threshold = si.Threshold
     }
 
     // There is a set of valid attributes and a default.
@@ -94,6 +100,11 @@ func Validate(src []Input, dest []Input) (error) {
 
     for _, rx := range si.Whitelist{
       v_input.Whitelist = append(v_input.Whitelist, rx)
+    }
+
+    if len(v_input.Whitelist) > 0 && len(v_input.Blacklist) > 0 {
+      return fmt.Errorf("It seems like an input config has both whitelist" +
+                        "and blacklist are specified.")
     }
     dest = append(dest, v_input)
   }
