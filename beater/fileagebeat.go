@@ -5,7 +5,9 @@ import (
 	"time"
   "os"
   "strings"
+  "syscall"
   "path/filepath"
+  "regexp"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -79,10 +81,15 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
     case <-ticker.C:
     }
 
+    // Build a fresh list of files every period
     files := BuildFileList(input)
 
     for _, f := range files {
-      fmt.Println(f)
+      t := GetAge(f, input.Attribute)
+      age := time.Now().Sub(t)
+      if age > input.Threshold {
+        fmt.Println("The file is older than the threshold.")
+      }
     }
 
     event := beat.Event{
@@ -95,9 +102,27 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
   }
 }
 
-// This returns a list of files within the paths for an input.
+func GetAge(path string, attribute string) (val time.Time) {
+  fi, err := os.Stat(path)
+  if err != nil {
+    return
+  }
+  stat := fi.Sys().(*syscall.Stat_t)
+  if attribute == "mtime" {
+    // For mtime we can use the golang os lib.
+    // for the others we need to make a linux syscall.
+    val = fi.ModTime()
+  } else if attribute == "atime" {
+    val = time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+  } else if attribute == "ctime" {
+    val = time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec))
+  }
+  return
+}
+
+// This returns a list of absolute paths that should have their age checked.
 func BuildFileList(input config.Input) []string {
-  var files []string
+  var working_list []string
   for _, path := range input.Paths {
     err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error{
       // Convert all the paths to relative paths
@@ -109,13 +134,39 @@ func BuildFileList(input config.Input) []string {
         if input.Max_depth > 0 &&
            strings.Count(p, "/") <= input.Max_depth &&
            ! info.IsDir() {
-            files = append(files, p)
+            working_list = append(working_list, path + p)
         }
       }
       return nil
     })
     if err != nil {
       panic(err)
+    }
+  }
+
+  var files []string
+
+  // The config parsing made sure whitelist and black list were mutually
+  // exclusive. These won't both run.
+  if len(input.Whitelist) > 0 {
+    for _, r := range input.Whitelist {
+      rx, _ := regexp.Compile(r)
+      for _, f := range working_list {
+        if rx.MatchString(f) {
+          files = append(files, f)
+        }
+      }
+    }
+  }
+
+  if len(input.Blacklist) > 0 {
+    for _, r := range input.Blacklist {
+      rx, _ := regexp.Compile(r)
+      for _, f := range working_list {
+        if ! rx.MatchString(f) {
+          files = append(files, f)
+        }
+      }
     }
   }
   return files
