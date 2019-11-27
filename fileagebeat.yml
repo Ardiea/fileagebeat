@@ -6,19 +6,18 @@ fileagebeat:
   ##############################################################################
   # The primary configuration item is a list of inputs under fileagebeat.inputs.
   #
-  # There are two classes of input, monitor and verbose_monitor.
-  #
-  # A monitor will only register an output for files that exceed the threshold.
-  #
-  # A verbose monitor will output for every file in the directory wether they
-  # exceed the threshold or not.
+  # At this time there is only one type of input, a 'monitor'. A monitor will
+  # only generate an event if a file's age exeeds the threshold. The beat will
+  # generate one event for each file it finds that eceeds the threshold.
+  # The only caveat to that is if heartbeat: true, which will generate a
+  # heartbeat message each period.
   #
   # Each class requires a few parameters
   # - paths     : a list of absolute paths to directories to monitor. These must
   #               be directories, not files.
-  # - period    : how often to check the paths, duration
+  # - period    : how often to check the paths, duration. Defaults to 60 seconds
   # - threshold : a period of time that if the file's age exceeds it it will be
-  #               considered to be an aging file.
+  #               considered to be an aging file. Defaults to 60 sceonds.
   # - name      : A name for the input.
   #
   # Additionally there are several optional parameters for each monitor.
@@ -41,16 +40,15 @@ fileagebeat:
   #               period check. This is useful to know that the monitor is still
   #               running. This is a boolean value and the default is false.
   inputs:
-  - name: "monitor 1"
-    type: verbose_monitor
-    period: '2s'
+  - name: "var_log"
+    type: monitor
+    period: '5s'
+    threshold: '2m'
     paths:
     - '/var/log'
-    - '/etc'
-    blacklist:
-    - "filename_i_dontwant"
-    max_depth: 1
-    attribute: ctime
+    max_depth: 2
+    attribute: mtime
+    hearbeat: true
   # - name: "monitor 2"
   #   type: monitor
   #   period: '5s'

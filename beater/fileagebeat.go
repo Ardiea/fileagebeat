@@ -46,10 +46,6 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
     return nil, e
   }
 
-  for _, input := range bt.inputs {
-    fmt.Println(input)
-  }
-
 	return bt, nil
 }
 
@@ -88,17 +84,37 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
       t := GetAge(f, input.Attribute)
       age := time.Now().Sub(t)
       if age > input.Threshold {
-        fmt.Println("The file is older than the threshold.")
+        fi, _ := os.Stat(f)
+        stat := fi.Sys().(*syscall.Stat_t)
+        event := beat.Event{
+          Timestamp: time.Now(),
+          Fields: common.MapStr{
+            "Event": common.MapStr{
+              "action": "aging_file_found",
+            },
+            "File": common.MapStr{
+              "mtime": fi.ModTime(),
+              "atime": time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)),
+              "ctime": time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)),
+              "size": fi.Size(),
+              "mode": fi.Mode(),
+              "path": f,
+            },
+          },
+        }
+        bt.client.Publish(event)
       }
     }
 
-    event := beat.Event{
-      Timestamp: time.Now(),
-      Fields: common.MapStr{
-        "event": "eventname",
-      },
+    if input.Heartbeat {
+      event := beat.Event{
+        Timestamp: time.Now(),
+        Fields: common.MapStr{
+          "event": "fileagebeat_heartbeat",
+        },
+      }
+      bt.client.Publish(event)
     }
-    bt.client.Publish(event)
   }
 }
 
@@ -169,6 +185,11 @@ func BuildFileList(input config.Input) []string {
       }
     }
   }
+
+  if len(input.Blacklist) == 0 && len(input.Whitelist) == 0 {
+    files = append(files, working_list...)
+  }
+
   return files
 }
 

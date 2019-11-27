@@ -26,7 +26,7 @@ type Input struct {
   Blacklist []string `config:"blacklist"`
   Max_depth int `config:"max_depth"`
   Attribute string `config:"attribute"`
-
+  Heartbeat bool `config:"heartbeat"`
 }
 
 var DefaultConfig Config
