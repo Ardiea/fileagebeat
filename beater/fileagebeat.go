@@ -198,7 +198,7 @@ func BuildFileList(input config.Input) []string {
            ! info.IsDir()  {
             working_list = append(working_list, path + p)
         } else if input.Max_depth == 0 &&
-          ! {
+          ! info.IsDir() {
           working_list = append(working_list, path + p)
         }
       }
