@@ -15,13 +15,13 @@ fileagebeat:
   # Each class requires a few parameters
   # - paths     : a list of absolute paths to directories to monitor. These must
   #               be directories, not files.
-  # - period    : how often to check the paths, duration. Defaults to 60 seconds
-  # - threshold : a period of time that if the file's age exceeds it it will be
-  #               considered to be an aging file. Defaults to 60 sceonds.
   # - name      : A name for the input.
   #
   # Additionally there are several optional parameters for each monitor.
-  # - enabled   : A boolean for to enable or disable the input. Default is true.
+  # - disable   : A boolean for to enable or disable the input. Default is false.
+  # - period    : how often to check the paths, duration. Defaults to 60 seconds
+  # - threshold : a period of time that if the file's age exceeds it it will be
+  #               considered to be an aging file. Defaults to 60 sceonds.
   # - whitelist : A list of regular expressions that will be tested against the
   #               the filenames. The filename must match one of these regexs to
   #               to be included in the monitoring. whitelist and blacklist are
@@ -45,10 +45,12 @@ fileagebeat:
     period: '5s'
     threshold: '2m'
     paths:
-    - '/var/log'
-    max_depth: 2
+    - 'C:\Users\mdavidson\Desktop\notes'
+    #max_depth: 3
     attribute: mtime
     hearbeat: true
+    blacklist:
+    - ".*2015.*"
   # - name: "monitor 2"
   #   type: monitor
   #   period: '5s'
@@ -194,3 +196,4 @@ output.console:
 
 # This allows to enable 6.7 migration aliases
 #migration.6_to_7.enabled: true
+

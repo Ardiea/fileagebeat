@@ -34,7 +34,7 @@ type Config struct {
 }
 
 type Input struct {
-  Type string `config:"type"`
+  Disabled bool `config:"disabled"`
   Name string `config:"name"`
   Period time.Duration `config:"period"`
   Threshold time.Duration `config:"threshold"`
@@ -64,20 +64,7 @@ func Validate(src []Input, dest []Input) (error) {
     } else {
       v_input.Name = si.Name
     }
-
-    //Type will default to monitor so that is okay. Error
-    // on any invalid specification though
-    valid_types := []string{"monitor", ""}
-    if Contains(v_input.Type, valid_types) {
-      if si.Type != "" {
-        v_input.Type = si.Type
-      } else {
-        v_input.Type = "monitor"
-      }
-    } else {
-      return fmt.Errorf("Invalid type specified: %s", si.Type)
-    }
-
+    
     // Period can be undefined, if so 60 is default
     if si.Period != 0 {
       v_input.Period = si.Period

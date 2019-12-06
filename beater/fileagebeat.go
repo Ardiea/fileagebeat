@@ -22,14 +22,16 @@ import (
 	"time"
   "os"
   "strings"
-  "syscall"
   "path/filepath"
   "regexp"
+  "runtime"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
 	"github.com/elastic/beats/libbeat/logp"
 	"github.com/Ardiea/fileagebeat/config"
+
+  "gopkg.in/djherbis/times.v1"
 )
 
 // Fileagebeat configuration.
@@ -76,7 +78,9 @@ func (bt *Fileagebeat) Run(b *beat.Beat) error {
 	}
 
   for _, input := range bt.config.Inputs {
-    go SpawnCrawler(input, bt, b)
+    if ! input.Disabled {
+      go SpawnCrawler(input, bt, b)
+    }
   }
 
   <-bt.done
@@ -102,20 +106,33 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
       age := time.Now().Sub(t)
       if age > input.Threshold {
         fi, _ := os.Stat(f)
-        stat := fi.Sys().(*syscall.Stat_t)
+        t, err := times.Stat(f)
+
+        if err != nil {
+          logp.Err("Encountered an error collecting the times.")
+          return
+        } 
+
+        atime := t.AccessTime()
+        mtime := t.ModTime()
+        ctime := t.ChangeTime()
+
         event := beat.Event{
           Timestamp: time.Now(),
           Fields: common.MapStr{
-            "Event": common.MapStr{
+            "event": common.MapStr{
               "action": "aging_file_found",
             },
-            "File": common.MapStr{
-              "mtime": fi.ModTime(),
-              "atime": time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec)),
-              "ctime": time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec)),
+            "file": common.MapStr{
+              "mtime": mtime,
+              "atime": atime,
+              "ctime": ctime,
               "size": fi.Size(),
-              "mode": fi.Mode(),
+              "mode": fi.Mode().String(),
               "path": f,
+            },
+            "agent": common.MapStr{
+              "name": input.Name,
             },
           },
         }
@@ -123,11 +140,16 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
       }
     }
 
-    if input.Heartbeat {
+    if input.Heartbeat == true {
       event := beat.Event{
         Timestamp: time.Now(),
         Fields: common.MapStr{
-          "event": "fileagebeat_heartbeat",
+          "event": common.MapStr{
+             "action": "fileagebeat_heartbeat",
+          },
+          "agent": common.MapStr{
+            "name": input.Name,
+          },
         },
       }
       bt.client.Publish(event)
@@ -136,19 +158,19 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
 }
 
 func GetAge(path string, attribute string) (val time.Time) {
-  fi, err := os.Stat(path)
+  t, err := times.Stat(path)
+
   if err != nil {
+    logp.Err("Encountered an error collecting the times.")
     return
-  }
-  stat := fi.Sys().(*syscall.Stat_t)
+  } 
+
   if attribute == "mtime" {
-    // For mtime we can use the golang os lib.
-    // for the others we need to make a linux syscall.
-    val = fi.ModTime()
+    val = t.ModTime()
   } else if attribute == "atime" {
-    val = time.Unix(int64(stat.Atim.Sec), int64(stat.Atim.Nsec))
+    val = t.AccessTime()
   } else if attribute == "ctime" {
-    val = time.Unix(int64(stat.Ctim.Sec), int64(stat.Ctim.Nsec))
+    val = t.ChangeTime()
   }
   return
 }
@@ -164,10 +186,20 @@ func BuildFileList(input config.Input) []string {
       if len(p) > 1 {
         // input.Max_depth is set, remove violating paths from the list as
         // well as directories
+        var delimiter string
+        switch runtime.GOOS {
+          case "windows":
+            delimiter = "\\"
+          default:
+            delimiter = "/"
+        }
         if input.Max_depth > 0 &&
-           strings.Count(p, "/") <= input.Max_depth &&
-           ! info.IsDir() {
+           strings.Count(p, delimiter) <= input.Max_depth &&
+           ! info.IsDir()  {
             working_list = append(working_list, path + p)
+        } else if input.Max_depth == 0 &&
+          ! {
+          working_list = append(working_list, path + p)
         }
       }
       return nil
