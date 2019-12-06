@@ -39,6 +39,23 @@ in the same directory with the name fileagebeat.
 make
 ```
 
+### Configure
+
+The primary configuration element is a list of input structures as described below. 
+
+onfiguration Element | Type | Description | Required? | Default Value |
+|-----------------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|----------------|
+| `inputs:` | List | List of configuration inputs | Yes | Not applicable |
+| `  name:` | String | A unique name for the input. | Yes | Not applicable |
+| `  paths:` | List of Strings | A list of paths for this input to check. | Yes | Not Applicable |
+| `  disable:` | Bool | A boolean for to enable or disable the input. Default is false. | No | `false` |
+| `  period:` | Golang Duration | How often to check the paths. Defaults to 60 seconds | No | `60s` |
+| `  threshold:` | Golang Duration | A period of time that if the file's age exceeds it it will be considered to be an aging file. | No | `60s` |
+| `  whiteslist:` | List of Strings | A list of regular expressions that will be tested against discovered filenames. Any file names found that match one of these regular exprssions will be included for consideration in age testing. Whitelist and blacklist are mutually exclusive. | No | Empty List |
+| `  blacklist:` | List of Strings | A list of regular expressions that will be tested against discovered filenames. Any file names found that match one of these regular expressions will be excluded from consideration in age testing. Whitelist and blacklist are mutually exclusive. | No | Empty List |
+| `  max_depth:` | Integer | A restriction on how deeply into the directory structure of each path to descend. 0 means no restriction. 1 means do not descend into any sub-directories.  | No | 0 |
+| `  attribute:` | String | Specifies which time attribute to use in age testing. Valid options are `mtime`, `ctime`, and `atime`.  | No | `mtime` |
+| `  heartbeat:` | Bool | Enables a heartbeat message to be sent to the outputs every `period`. This is useful to know if the monitor is still running. | No | `false` |
 
 ### Run
 
