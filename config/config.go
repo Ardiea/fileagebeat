@@ -30,7 +30,8 @@ import (
 )
 
 type Config struct {
-	Inputs []Input `config:"inputs"`
+  Fields map[string]string    `config:"fields"`
+	Inputs []Input              `config:"inputs"`
 }
 
 type Input struct {
