@@ -56,9 +56,8 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
 
   //str := common.DebugString(bt.config, false)
   //fmt.Println(str)
-
+  
   bt.inputs = make([]config.Input, 0)
-
 
   e := config.Validate(bt.config.Inputs, bt.inputs)
   if e != nil {
@@ -136,6 +135,9 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
             },
           },
         }
+        if len(bt.config.Fields) != 0 { 
+          event.PutValue("fields", bt.config.Fields)
+        }
         bt.client.Publish(event)
       }
     }
@@ -151,6 +153,9 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
             "name": input.Name,
           },
         },
+      }
+      if len(bt.config.Fields) != 0 { 
+        event.PutValue("fields", bt.config.Fields)
       }
       bt.client.Publish(event)
     }
@@ -179,6 +184,7 @@ func GetAge(path string, attribute string) (val time.Time) {
 func BuildFileList(input config.Input) []string {
   var working_list []string
   for _, path := range input.Paths {
+    path := filepath.Clean(path)
     err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error{
       // Convert all the paths to relative paths
       // and remove the empty root path
@@ -193,6 +199,7 @@ func BuildFileList(input config.Input) []string {
           default:
             delimiter = "/"
         }
+
         if input.Max_depth > 0 &&
            strings.Count(p, delimiter) <= input.Max_depth &&
            ! info.IsDir()  {
@@ -238,6 +245,8 @@ func BuildFileList(input config.Input) []string {
   if len(input.Blacklist) == 0 && len(input.Whitelist) == 0 {
     files = append(files, working_list...)
   }
+  
+  fmt.Print(strings.Trim(fmt.Sprint(files), "[]")) 
 
   return files
 }

@@ -45,6 +45,7 @@ The primary configuration element is a list of input structures as described bel
 
 onfiguration Element | Type | Description | Required? | Default Value |
 |-----------------------|-----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|----------------|
+| `fields:` | map | A map of fields that will be added under `fields:` to every result and document the beat produces  | No | Nil |
 | `inputs:` | List | List of configuration inputs | Yes | Not applicable |
 | `  name:` | String | A unique name for the input. | Yes | Not applicable |
 | `  paths:` | List of Strings | A list of paths for this input to check. | Yes | Not Applicable |
