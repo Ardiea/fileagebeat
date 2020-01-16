@@ -246,8 +246,6 @@ func BuildFileList(input config.Input) []string {
     files = append(files, working_list...)
   }
   
-  fmt.Print(strings.Trim(fmt.Sprint(files), "[]")) 
-
   return files
 }
 
