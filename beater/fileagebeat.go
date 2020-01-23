@@ -140,6 +140,7 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
               "mode": fi.Mode().String(),
               "path": f,
               "directory": directory,
+              "age": age.Round(time.Second).String(),
             },
             "agent": common.MapStr{
               "name": input.Name,
