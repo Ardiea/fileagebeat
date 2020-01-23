@@ -115,7 +115,17 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
         atime := t.AccessTime()
         mtime := t.ModTime()
         ctime := t.ChangeTime()
+    
+        var delimiter string
+        switch runtime.GOOS {
+          case "windows":
+            delimiter = "\\"
+          default:
+            delimiter = "/"
+        }
 
+        directory := f[:strings.LastIndex(f, delimiter)]
+        
         event := beat.Event{
           Timestamp: time.Now(),
           Fields: common.MapStr{
@@ -129,6 +139,7 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
               "size": fi.Size(),
               "mode": fi.Mode().String(),
               "path": f,
+              "directory": directory,
             },
             "agent": common.MapStr{
               "name": input.Name,
