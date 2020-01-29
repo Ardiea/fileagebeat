@@ -54,7 +54,7 @@ onfiguration Element | Type | Description | Required? | Default Value |
 | `  threshold:` | Golang Duration | A period of time that if the file's age exceeds it it will be considered to be an aging file. | No | `60s` |
 | `  whiteslist:` | List of Strings | A list of regular expressions that will be tested against discovered filenames. Any file names found that match one of these regular exprssions will be included for consideration in age testing. Whitelist and blacklist are mutually exclusive. | No | Empty List |
 | `  blacklist:` | List of Strings | A list of regular expressions that will be tested against discovered filenames. Any file names found that match one of these regular expressions will be excluded from consideration in age testing. Whitelist and blacklist are mutually exclusive. | No | Empty List |
-| `  max_depth:` | Integer | A restriction on how deeply into the directory structure of each path to descend. 0 means no restriction. 1 means do not descend into any sub-directories.  | No | 0 |
+| `  max_depth:` | Integer | A restriction on how deeply into the directory structure of each path to descend. 0 means no restriction. 1 means do not descend into any sub-directories. To prevent unrestricted recursion, 0 == 128. To go deeper than 128 directories specify a value > 128.  | No | 128 |
 | `  attribute:` | String | Specifies which time attribute to use in age testing. Valid options are `mtime`, `ctime`, and `atime`.  | No | `mtime` |
 | `  heartbeat:` | Bool | Enables a heartbeat message to be sent to the outputs every `period`. This is useful to know if the monitor is still running. | No | `false` |
 
