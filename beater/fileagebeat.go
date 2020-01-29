@@ -105,7 +105,6 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
     logp.Debug("Length of filelist for Crawler %s = %d", input.Name, len(files))
 
     for _, f := range files {
-      fmt.Println(f)
       t := GetAge(f, input.Attribute)
       age := time.Now().Sub(t)
       if age > input.Threshold {
