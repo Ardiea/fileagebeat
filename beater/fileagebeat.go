@@ -26,6 +26,7 @@ import (
   "regexp"
   "runtime"
   "io/ioutil"
+  "math/rand"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -88,17 +89,20 @@ func (bt *Fileagebeat) Run(b *beat.Beat) error {
 }
 
 func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
+  rand.Seed(time.Now().UnixNano())
+  delay_seconds := rand.Float64()*input.Period.Seconds()
+  logp.Info("Crawler: %s started. Delaying collection for %f seconds.",input.Name, delay_seconds)
+  time.Sleep(time.Duration(delay_seconds)*time.Second)
+
   ticker := time.NewTicker(input.Period)
-  //counter := 1
-  logp.Info("Crawler: %s started.",input.Name)
   for {
     // Build a fresh list of files every period
     
     start := time.Now()
     files := BuildFileList2(input)
     elapsed := time.Since(start)
-    logp.Info("Time to build filelist for Crawler %s = %s", input.Name, elapsed)
-    logp.Info("Length of filelist for Crawler %s = %d", input.Name, len(files))
+    logp.Debug("Time to build filelist for Crawler %s = %s", input.Name, elapsed)
+    logp.Debug("Length of filelist for Crawler %s = %d", input.Name, len(files))
 
     for _, f := range files {
       fmt.Println(f)
@@ -109,7 +113,7 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
         t, err := times.Stat(f)
 
         if err != nil {
-          logp.Err("Encountered an error collecting the times.")
+          logp.Err("Encountered an error collecting the times: %s", err.Error())
           return
         } 
 
@@ -184,7 +188,7 @@ func GetAge(path string, attribute string) (val time.Time) {
   t, err := times.Stat(path)
 
   if err != nil {
-    logp.Err("Encountered an error collecting the times.")
+    logp.Err("Encountered an error collecting the times: %s", err.Error())
     return
   } 
 
