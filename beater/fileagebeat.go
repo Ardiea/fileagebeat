@@ -25,6 +25,7 @@ import (
   "path/filepath"
   "regexp"
   "runtime"
+  "io/ioutil"
 
 	"github.com/elastic/beats/libbeat/beat"
 	"github.com/elastic/beats/libbeat/common"
@@ -91,16 +92,16 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
   //counter := 1
   logp.Info("Crawler: %s started.",input.Name)
   for {
-    select {
-    case <- bt.done:
-      return
-    case <-ticker.C:
-    }
-
     // Build a fresh list of files every period
-    files := BuildFileList(input)
+    
+    start := time.Now()
+    files := BuildFileList2(input)
+    elapsed := time.Since(start)
+    logp.Info("Time to build filelist for Crawler %s = %s", input.Name, elapsed)
+    logp.Info("Length of filelist for Crawler %s = %d", input.Name, len(files))
 
     for _, f := range files {
+      fmt.Println(f)
       t := GetAge(f, input.Attribute)
       age := time.Now().Sub(t)
       if age > input.Threshold {
@@ -171,6 +172,11 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
       }
       bt.client.Publish(event)
     }
+    select {
+    case <- bt.done:
+      return
+    case <-ticker.C:
+    }
   }
 }
 
@@ -192,52 +198,36 @@ func GetAge(path string, attribute string) (val time.Time) {
   return
 }
 
-// This returns a list of absolute paths that should have their age checked.
-func BuildFileList(input config.Input) []string {
+// Performance enhanced version of the subroutine to build the filelist.
+// No more costly filewalk. 
+func BuildFileList2(input config.Input) (list []string) {
   var working_list []string
-  for _, path := range input.Paths {
-    path := filepath.Clean(path)
-    err := filepath.Walk(path, func(p string, info os.FileInfo, err error) error{
-      // Convert all the paths to relative paths
-      // and remove the empty root path
-      p = strings.Replace(p, path, "", -1)
-      if len(p) > 1 {
-        // input.Max_depth is set, remove violating paths from the list as
-        // well as directories
-        var delimiter string
-        switch runtime.GOOS {
-          case "windows":
-            delimiter = "\\"
-          default:
-            delimiter = "/"
-        }
+  max_depth := 128
 
-        if input.Max_depth > 0 &&
-           strings.Count(p, delimiter) <= input.Max_depth &&
-           ! info.IsDir()  {
-            working_list = append(working_list, path + p)
-        } else if input.Max_depth == 0 &&
-          ! info.IsDir() {
-          working_list = append(working_list, path + p)
-        }
-      }
-      return nil
-    })
-    if err != nil {
-      panic(err)
-    }
+  var delimiter string
+  switch runtime.GOOS {
+    case "windows":
+      delimiter = "\\"
+    default:
+      delimiter = "/"
   }
 
-  var files []string
+  if input.Max_depth != 0 {
+    max_depth = input.Max_depth
+  }
+
+  for _, path := range input.Paths {
+    working_list = append(working_list, getFiles(path, delimiter, max_depth)...)
+  }
 
   // The config parsing made sure whitelist and black list were mutually
-  // exclusive. These won't both run.
+  // exclusive. These won't both run. That was determined at parse time. 
   if len(input.Whitelist) > 0 {
     for _, r := range input.Whitelist {
       rx, _ := regexp.Compile(r)
       for _, f := range working_list {
         if rx.MatchString(f) {
-          files = append(files, f)
+          list = append(list, f)
         }
       }
     }
@@ -248,17 +238,37 @@ func BuildFileList(input config.Input) []string {
       rx, _ := regexp.Compile(r)
       for _, f := range working_list {
         if ! rx.MatchString(f) {
-          files = append(files, f)
+          list = append(list, f)
         }
       }
     }
   }
 
   if len(input.Blacklist) == 0 && len(input.Whitelist) == 0 {
-    files = append(files, working_list...)
+    list = append(list, working_list...)
   }
-  
-  return files
+  return
+}
+
+// Recursive function to retrieve all the files down to a specified depth
+func getFiles(path string, delimiter string, depth int) (list []string) {
+  path = filepath.Clean(path)
+  if depth == 0 {
+    return
+  } else {
+    files, err := ioutil.ReadDir(path)
+    if err != nil {
+      logp.Err("Error producing filelist.")
+    }
+    for _, f := range(files) {
+      if f.IsDir() {
+        list = append(list, getFiles(path + delimiter + f.Name(), delimiter, depth-1)...)
+      } else {
+        list = append(list, path + delimiter + f.Name())
+      }
+    }
+  }
+  return
 }
 
 // Stop stops fileagebeat.
