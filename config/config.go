@@ -49,8 +49,10 @@ type Input struct {
 
 var DefaultConfig Config
 
-func Validate(src []Input, dest []Input) (error) {
+func Validate(src []Input) ([]Input, error) {
   var err error
+
+  dest := make([]Input, 0)
 
   for _, si := range src {
     v_input := Input{
@@ -61,7 +63,7 @@ func Validate(src []Input, dest []Input) (error) {
 
     // If there is no name that is bad, error
     if si.Name == "" {
-      return fmt.Errorf("import specified without a name.")
+      return dest, fmt.Errorf("import specified without a name.")
     } else {
       v_input.Name = si.Name
     }
@@ -86,13 +88,13 @@ func Validate(src []Input, dest []Input) (error) {
         v_input.Attribute = "mtime"
       }
     } else {
-      return fmt.Errorf("Invalid attribute: %s", si.Attribute)
+      return dest, fmt.Errorf("Invalid attribute: %s", si.Attribute)
     }
 
     // Paths must not be empty
     if len(si.Paths) == 0 {
       logp.Err("No paths specified in input: %s", si.Name)
-      return err
+      return dest, err
     } else {
       for _, path := range si.Paths{
         v_input.Paths = append(v_input.Paths, path)
@@ -108,12 +110,12 @@ func Validate(src []Input, dest []Input) (error) {
     }
 
     if len(v_input.Whitelist) > 0 && len(v_input.Blacklist) > 0 {
-      return fmt.Errorf("It seems like an input config has both whitelist" +
+      return dest, fmt.Errorf("It seems like an input config has both whitelist" +
                         "and blacklist are specified.")
     }
     dest = append(dest, v_input)
   }
-  return nil
+  return dest, nil
 }
 
 func Contains(str string, list []string) bool {

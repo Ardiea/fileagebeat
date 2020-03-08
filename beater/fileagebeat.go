@@ -41,7 +41,7 @@ type Fileagebeat struct {
 	done   chan struct{}
 	config config.Config
 	client beat.Client
-  inputs []config.Input
+	inputs []config.Input
 }
 
 // New creates an instance of fileagebeat.
@@ -59,12 +59,12 @@ func New(b *beat.Beat, cfg *common.Config) (beat.Beater, error) {
   //str := common.DebugString(bt.config, false)
   //fmt.Println(str)
   
-  bt.inputs = make([]config.Input, 0)
-
-  e := config.Validate(bt.config.Inputs, bt.inputs)
+  inputs, e := config.Validate(bt.config.Inputs)
+  bt.inputs = inputs
   if e != nil {
     return nil, e
   }
+  bt.inputs = inputs
 
 	return bt, nil
 }
@@ -78,7 +78,7 @@ func (bt *Fileagebeat) Run(b *beat.Beat) error {
 		return err
 	}
 
-  for _, input := range bt.config.Inputs {
+  for _, input := range bt.inputs {
     if ! input.Disabled {
       go SpawnCrawler(input, bt, b)
     }
@@ -105,6 +105,7 @@ func SpawnCrawler(input config.Input, bt *Fileagebeat, b *beat.Beat) {
     logp.Debug("Length of filelist for Crawler %s = %d", input.Name, len(files))
 
     for _, f := range files {
+      logp.Err("Input is %s", input.Attribute)
       t := GetAge(f, input.Attribute)
       age := time.Now().Sub(t)
       if age > input.Threshold {
